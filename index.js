@@ -1,82 +1,49 @@
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const axios = require("axios");
 
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const { Configuration, OpenAIApi } = require('openai');
-
-require('dotenv').config();
+dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+app.post("/api/verificar", async (req, res) => {
+  const { texto } = req.body;
 
-app.post('/api/analyze', async (req, res) => {
-  const { text, url } = req.body;
-
-  if (!text || text.length < 50) {
-    return res.status(400).json({ error: 'Texto insuficiente para analizar.' });
+  if (!texto) {
+    return res.status(400).json({ error: "Texto no proporcionado" });
   }
-
-  const prompt = `Analiza el siguiente contenido web para detectar posibles fake news:
-
-URL: ${url}
-Dominio: ${new URL(url).hostname}
-
-CONTENIDO:
-${text}
-
-Evalúa:
-1. Veracidad de las afirmaciones
-2. Presencia de fuentes confiables
-3. Indicadores de desinformación
-4. Coherencia y lógica del contenido
-
-Responde en JSON con este formato exacto:
-{
-  "classification": "VERDADERO|DUDOSO|FALSO",
-  "explanation": "Explicación detallada...",
-  "confidence": "alto|medio|bajo",
-  "indicators": ["lista", "de", "indicadores", "encontrados"]
-}`;
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: "Eres un verificador experto en detectar desinformación y fake news. Responde solo con el JSON especificado."
-        },
-        {
-          role: 'user',
-          content: prompt
+    const prompt = `Analiza si el siguiente texto contiene desinformación o es una noticia falsa. Responde brevemente con una conclusión clara.\n\nTexto:\n${texto}`;
+
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
         }
-      ],
-      temperature: 0.2,
-      max_tokens: 600
-    });
+      }
+    );
 
-    const content = completion.data.choices[0].message.content;
-
-    try {
-      const parsed = JSON.parse(content);
-      res.json(parsed);
-    } catch (parseError) {
-      res.status(500).json({ error: 'Error al interpretar la respuesta del modelo.', raw: content });
-    }
+    const resultado = response.data.choices[0].message.content;
+    res.json({ resultado });
   } catch (error) {
-    console.error('Error al llamar a OpenAI:', error);
-    res.status(500).json({ error: 'Error al comunicarse con OpenAI' });
+    console.error("Error al consultar OpenAI:", error.response?.data || error.message);
+    res.status(500).json({ error: "Error al analizar el texto" });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Servidor VERIFAKE escuchando en http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`);
 });
