@@ -19,15 +19,15 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `Analiza el siguiente texto y determina si se trata de una noticia real, falsa, sátira o si no se puede saber. Evalúa exclusivamente el contenido, sin considerar la fuente o el sitio web. 
+    const prompt = `Analiza el siguiente texto y determina si se trata de una noticia real, falsa, sátira o indeterminada. Evalúa únicamente el contenido textual, sin considerar la fuente o el dominio web.
 
 Responde en formato JSON con los siguientes campos:
 - classification: "Real", "Falsa", "Sátira" o "Indeterminada"
-- confidence: Porcentaje estimado de seguridad (ej: "85%")
-- explanation: Explicación clara del porqué de la clasificación (tono, verosimilitud, estilo, etc.)
-- indicators: Lista de pistas o señales como "Tono irónico", "Exageración evidente", "Falta de contexto verificable", etc.
+- confidence: Porcentaje estimado de seguridad
+- explanation: Explicación clara del porqué de la clasificación. Si se trata de una afirmación sensacionalista basada en hechos reales (como viajes o eventos), pero que ha sido manipulada o malinterpretada, indícalo explícitamente.
+- indicators: Lista de señales detectadas como "Manipulación de imágenes", "Malinterpretación de eventos reales", "Ausencia de pruebas", "Exageración emocional", etc.
 
-Evalúa si el texto contiene elementos humorísticos, paródicos o absurdos que lo alejan del periodismo serio o verificable.
+Ten en cuenta si el texto se apoya en hechos verificables o si distorsiona información real para generar escándalo.
 
 Texto a analizar:
 ${texto}`;
