@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
-  const { text } = req.body;
+  const { texto } = req.body;
 
   if (!texto) {
     return res.status(400).json({ error: "Texto no proporcionado" });
