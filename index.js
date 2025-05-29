@@ -19,9 +19,9 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `Analiza el siguiente texto y responde en formato JSON con los siguientes campos: 
+    const prompt = `Analiza el siguiente texto y responde en formato JSON con los siguientes campos:
 - classification: "Real", "Falsa" o "Indeterminada"
-- confidence: Porcentaje estimado de seguridad
+- confidence: Porcentaje estimado de seguridad (ej: "85%")
 - explanation: Explicación breve del análisis
 - indicators: lista de pistas o factores detectados
 
@@ -44,19 +44,26 @@ ${texto}`;
     );
 
     const content = response.data.choices[0].message.content;
-let resultado;
-try {
-  resultado = JSON.parse(content);
-} catch (e) {
-  resultado = {
-    classification: "Indeterminada",
-    confidence: "50%",
-    explanation: content,
-    indicators: ["No se pudo analizar en formato estructurado"]
-  };
-}
-res.json(resultado);
+    let resultado;
+
+    try {
+      resultado = JSON.parse(content);
+    } catch (e) {
+      resultado = {
+        classification: "Indeterminada",
+        confidence: "50%",
+        explanation: content,
+        indicators: ["Respuesta no estructurada"]
+      };
+    }
+
+    res.json(resultado);
+  } catch (error) {
+    console.error("Error al consultar OpenAI:", error.response?.data || error.message);
+    res.status(500).json({ error: "Error al analizar el texto" });
+  }
+});
 
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
+  console.log(`Servidor VERIFAKE escuchando en puerto ${PORT}`);
 });
