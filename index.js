@@ -19,7 +19,14 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `Analiza si el siguiente texto contiene desinformación o es una noticia falsa. Responde brevemente con una conclusión clara.\n\nTexto:\n${texto}`;
+    const prompt = `Analiza el siguiente texto y responde en formato JSON con los siguientes campos: 
+- classification: "Real", "Falsa" o "Indeterminada"
+- confidence: Porcentaje estimado de seguridad
+- explanation: Explicación breve del análisis
+- indicators: lista de pistas o factores detectados
+
+Texto a analizar:
+${texto}`;
 
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
@@ -36,13 +43,19 @@ app.post("/analyze", async (req, res) => {
       }
     );
 
-    const resultado = response.data.choices[0].message.content;
-    res.json({ resultado });
-  } catch (error) {
-    console.error("Error al consultar OpenAI:", error.response?.data || error.message);
-    res.status(500).json({ error: "Error al analizar el texto" });
-  }
-});
+    const content = response.data.choices[0].message.content;
+let resultado;
+try {
+  resultado = JSON.parse(content);
+} catch (e) {
+  resultado = {
+    classification: "Indeterminada",
+    confidence: "50%",
+    explanation: content,
+    indicators: ["No se pudo analizar en formato estructurado"]
+  };
+}
+res.json(resultado);
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
