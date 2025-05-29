@@ -19,9 +19,10 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `Analiza el siguiente texto y responde en formato JSON con los siguientes campos:
-- classification: "Real", "Falsa" o "Indeterminada"
-- confidence: Porcentaje estimado de seguridad (ej: "85%")
+    const prompt = `Analiza el siguiente texto y determina si contiene desinformación, sátira, o es una noticia real.
+Responde en formato JSON con los siguientes campos:
+- classification: "Real", "Falsa", "Sátira" o "Indeterminada"
+- confidence: Porcentaje estimado de seguridad
 - explanation: Explicación breve del análisis
 - indicators: lista de pistas o factores detectados
 
