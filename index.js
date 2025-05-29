@@ -19,7 +19,7 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `Analiza y busca información sobre el siguiente texto y determina si se trata de una noticia real, falsa, sátira o indeterminada. Evalúa únicamente el contenido textual, sin considerar la fuente o el dominio web.
+    const prompt = `Analiza el siguiente texto y busca información actualizada en internet para determinar si se trata de una noticia real, falsa, sátira o indeterminada. Evalúa únicamente el contenido textual, sin considerar la fuente o el dominio web.
 
 Responde en formato JSON con los siguientes campos:
 - classification: "Real", "Falsa", "Sátira" o "Indeterminada"
