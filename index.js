@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.post("/api/verificar", async (req, res) => {
+app.post("/analyze", async (req, res) => {
   const { texto } = req.body;
 
   if (!texto) {
