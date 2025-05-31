@@ -128,3 +128,5 @@ Devuelve un JSON con:
     };
   }
 }
+
+module.exports = { verificarTexto };
