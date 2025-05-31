@@ -72,8 +72,13 @@ Devuelve un resumen en formato JSON con los siguientes campos:
     });
 
     const raw = response.choices[0].message.content;
-    const json = JSON.parse(raw);
-    return json;
+console.log("[DEBUG] Respuesta RAW de OpenAI:", raw);
+
+// Elimina posibles markdown o bloques ```json
+const clean = raw.replace(/```json|```/g, '').trim();
+
+const parsed = JSON.parse(clean);
+return parsed;
   } catch (err) {
     console.error('[VERIFAKE] Error generando resumen final:', err.message);
     return {
