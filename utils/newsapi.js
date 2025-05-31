@@ -1,6 +1,6 @@
-import axios from 'axios';
+const axios = require('axios');
 
-export async function buscarEnNewsAPI(query) {
+async function buscarEnNewsAPI(query) {
   const NEWSAPI_KEY = process.env.NEWSAPI_KEY;
   if (!NEWSAPI_KEY) return [];
 
@@ -19,3 +19,5 @@ export async function buscarEnNewsAPI(query) {
     return [];
   }
 }
+
+module.exports = { buscarEnNewsAPI };
