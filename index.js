@@ -19,21 +19,28 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `Analiza el siguiente texto y busca información actualizada en internet para determinar si se trata de una noticia real, falsa, sátira o indeterminada. Evalúa únicamente el contenido textual, sin considerar la fuente o el dominio web.
+    const prompt = `Eres un analista experto en verificación de información. Tu tarea es analizar un texto (como si fuera un post en redes sociales o una noticia online) y determinar su veracidad basándote exclusivamente en el contenido y su coherencia factual. No debes considerar si proviene de medios "fiables" o no, ni usar listas blancas de fuentes. Realiza una verificación independiente, utilizando conocimiento actualizado y datos objetivos. Si el texto no se puede verificar, indica claramente que no es verificable. Si detectas que el texto es sátira o una opinión, indícalo también.
 
-Responde en formato JSON con los siguientes campos:
-- classification: "Real", "Falsa", "Sátira" o "Indeterminada"
-- confidence: Porcentaje estimado de seguridad
-- explanation: Explicación clara del porqué de la clasificación. Si se trata de una afirmación sensacionalista basada en hechos reales (como viajes o eventos), pero que ha sido manipulada o malinterpretada, indícalo explícitamente.
-- indicators: Lista de señales detectadas como "Manipulación de imágenes", "Malinterpretación de eventos reales", "Ausencia de pruebas", "Exageración emocional", etc.
+Devuelve el resultado con la siguiente estructura:
 
-Ten en cuenta si el texto se apoya en hechos verificables o si distorsiona información real para generar escándalo.
+{
+  "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
+  "confidence": [0-100],
+  "explanation": "Explicación objetiva de por qué el texto ha recibido esa clasificación.",
+  "indicators": [
+    "Datos contrastados o no encontrados",
+    "Referencias o hechos conocidos",
+    "Elementos de opinión, sátira o lenguaje emocional",
+    "Fuentes cruzadas, si las hay (sin usar medios oficiales como criterio de fiabilidad)"
+  ]
+}
 
-Texto a analizar:
-${texto}`;
+Ahora analiza el siguiente texto: """${texto}"""
+`;
 
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
+
       {
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: prompt }],
