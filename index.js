@@ -19,15 +19,34 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = Eres un analista experto en verificación de información. Tu tarea es analizar un texto (como si fuera un post en redes sociales o una noticia online) y determinar su veracidad basándote exclusivamente en el contenido y su coherencia factual. No debes considerar si proviene de medios "fiables" o no, ni usar listas blancas de fuentes. Realiza una verificación independiente, utilizando conocimiento actualizado y datos objetivos. Si el texto no se puede verificar, indica claramente que no es verificable. Si detectas que el texto es sátira o una opinión, indícalo también. Si el texto incluye hechos o descripciones reales pero con un estilo subjetivo, no lo clasifiques automáticamente como "opinión". Evalúa si el contenido se basa en eventos verificables antes de decidir.
+    const prompt = `
+Eres un analista experto en verificación de hechos. Tu tarea es analizar el siguiente texto como si fuera una publicación en redes sociales, una noticia online o una cadena viral. 
 
-Responde en formato JSON con los siguientes campos:
-- classification: "Real", "Falsa", "Sátira" o "Indeterminada"
-- confidence: Porcentaje estimado de seguridad
-- explanation: Explicación clara del porqué de la clasificación. Si se trata de una afirmación sensacionalista basada en hechos reales (como viajes o eventos), pero que ha sido manipulada o malinterpretada, indícalo explícitamente.
-- indicators: Lista de señales detectadas como "Manipulación de imágenes", "Malinterpretación de eventos reales", "Ausencia de pruebas", "Exageración emocional", etc.
+Debes determinar su veracidad basándote únicamente en el contenido del texto y su coherencia factual, sin considerar la reputación de la fuente. No uses listas blancas o negras de medios. No presupongas credibilidad por el origen.
 
-Ten en cuenta si el texto se apoya en hechos verificables o si distorsiona información real para generar escándalo.
+Evalúa si el texto:
+- Es verificable de forma objetiva
+- Manipula información real
+- Es una sátira, una opinión, o simplemente no verificable
+- Contiene elementos claramente falsos o engañosos
+
+Devuelve el resultado en **formato JSON exacto** con esta estructura:
+
+{
+  "classification": "Real" | "Falsa" | "Sátira" | "Opinión" | "Indeterminada",
+  "confidence": número entre 0 y 100,  // Porcentaje estimado de certeza
+  "explanation": "Explicación clara y objetiva sobre por qué el texto ha recibido esa clasificación.",
+  "indicators": [
+    "Datos verificados o no encontrados",
+    "Distorsión de hechos reales",
+    "Lenguaje emocional o sensacionalista",
+    "Ausencia de pruebas",
+    "Elementos subjetivos o de sátira",
+    "Fuentes cruzadas (sin asumir fiabilidad por el medio)"
+  ]
+}
+
+No agregues comentarios, no expliques fuera del JSON.
 
 Texto a analizar:
 ${texto};
@@ -37,7 +56,7 @@ ${texto};
       {
         model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.2
+        temperature: 0.1
       },
       {
         headers: {
