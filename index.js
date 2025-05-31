@@ -19,44 +19,33 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `Analiza el siguiente texto e identifica si contiene hechos verificables, independientemente del tono, lenguaje emocional o estilo del autor.
+    const prompt = `
+Eres un analista experto en verificación de información. Tu tarea es analizar un texto (como si fuera un post en redes sociales o una noticia online) y determinar su veracidad basándote exclusivamente en el contenido y su coherencia factual. No debes considerar si proviene de medios "fiables" o no, ni usar listas blancas de fuentes.
 
-Ignora opiniones o juicios subjetivos y céntrate solo en hechos contrastables: fechas, cifras, eventos, lugares, personas o declaraciones concretas.
+Realiza una verificación independiente, utilizando conocimiento actualizado y datos objetivos. Si el texto no se puede verificar, indica claramente que no es verificable. Si detectas que el texto es sátira o una opinión, indícalo también.
 
-Clasifica como:
-
-- REAL: si los hechos pueden verificarse en medios fiables o fuentes oficiales.
-- FALSO: si contiene hechos que contradicen la evidencia o fuentes oficiales.
-- PARCIAL: si mezcla hechos ciertos con afirmaciones dudosas o no verificadas.
-- NO VERIFICABLE: si no hay información concreta o contrastable.
-- SÁTIRA: si es claramente un texto humorístico o irónico.
-- OPINIÓN: solo si no contiene ningún hecho verificable.
-
-Explica tu clasificación y menciona qué elementos se consideran hechos verificables.
-
-Responde únicamente con un JSON válido, sin envolverlo en bloques de código, sin explicaciones, sin comentarios. Solo el JSON plano.
+Devuelve el resultado con la siguiente estructura:
 
 {
-  "classification": "[REAL | FALSO | NO VERIFICABLE | OPINIÓN | SATIRA]",
-  "confidence": 0-100,
-  "explanation": "Explicación objetiva y breve del análisis.",
+  "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
+  "confidence": [0-100], // Porcentaje estimado de fiabilidad del análisis
+  "explanation": "Explicación objetiva de por qué el texto ha recibido esa clasificación.",
   "indicators": [
-    "Presencia de hechos verificables",
-    "Falta de pruebas o fuentes explícitas",
-    "Lenguaje emocional o subjetivo",
-    "Hechos conocidos respaldados por fuentes",
-    "Afirma hechos reales pero mezclados con opinión"
+    "Datos contrastados o no encontrados",
+    "Referencias o hechos conocidos",
+    "Elementos de opinión, sátira o lenguaje emocional",
+    "Fuentes cruzadas, si las hay (sin usar medios oficiales como criterio de fiabilidad)"
   ]
 }
 
 Ejemplo:
-Texto: "Estos políticos votaron en contra de limitar la compra de viviendas por extranjeros en Baleares"
-→ classification: "REAL"
-→ confidence: 85
-→ explanation: "Es un hecho comprobable y respaldado por votaciones parlamentarias recientes. Aunque el texto tiene un tono crítico, la información central es verificable."
-→ indicators: ["Presencia de hechos verificables", "Hechos conocidos respaldados por fuentes"]
+Texto: "Un meteorito ha destruido la Torre Eiffel esta mañana."
+→ classification: "FALSO"
+→ confidence: 98
+→ explanation: "No existen reportes verificables ni evidencias de tal evento. La Torre Eiffel sigue en pie según múltiples fuentes cruzadas."
+→ indicators: ["No hay fuentes independientes", "Noticias actuales lo contradicen", "Sería un hecho global ampliamente cubierto"]
 
-Texto a analizar:
+Ahora analiza el siguiente texto:
 """${texto}"""
     `;
 
