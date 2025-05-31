@@ -5,6 +5,10 @@ const { verificarTexto } = require('./index');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.listen(PORT, () => {
+  console.log(`[VERIFAKE] Servidor escuchando en el puerto ${PORT}`);
+});
+
 app.use(cors());
 app.use(express.json());
 
