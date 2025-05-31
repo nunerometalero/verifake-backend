@@ -20,21 +20,20 @@ app.post("/analyze", async (req, res) => {
 
   try {
     const prompt = `
-Eres un verificador de hechos especializado en analizar textos de redes sociales, blogs y medios online. 
-Tu tarea es detectar si el texto contiene afirmaciones verificables (hechos) y clasificarlas como REALES, FALSAS, NO VERIFICABLES, SATIRA o OPINIÓN.
+Eres un verificador de hechos. Tu tarea es analizar un texto como si fuera una publicación de redes sociales o una noticia online.
 
-Tu análisis debe centrarse exclusivamente en el contenido factual. 
-Ignora el estilo, tono, sarcasmo, lenguaje emocional o intenciones del autor. 
-Evalúa solo las afirmaciones concretas que puedan comprobarse con datos.
+📌 Importante:
+- No clasifiques todo como "Opinión" solo por el tono emocional.
+- Tu objetivo es detectar hechos **concretos** dentro del texto, incluso si están escritos con lenguaje subjetivo o sarcástico.
+- Evalúa si las afirmaciones son comprobables y dales una clasificación objetiva.
+- Si hay hechos verdaderos entremezclados con opiniones, clasifica como "REAL" y explícalo.
 
-Incluso si el texto está mal redactado o tiene opiniones mezcladas, si contiene un hecho verificable, debes identificarlo y evaluarlo objetivamente.
-
-Devuelve el resultado en el siguiente formato JSON, sin ningún texto adicional:
+Responde solo con un JSON con esta estructura:
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | OPINIÓN | SATIRA]",
-  "confidence": [0-100],
-  "explanation": "Explicación objetiva y clara de por qué el texto recibió esa clasificación.",
+  "confidence": 0-100,
+  "explanation": "Explicación objetiva y breve del análisis.",
   "indicators": [
     "Presencia de hechos verificables",
     "Falta de pruebas o fuentes explícitas",
@@ -44,9 +43,16 @@ Devuelve el resultado en el siguiente formato JSON, sin ningún texto adicional:
   ]
 }
 
+Ejemplo:
+Texto: "Estos políticos votaron en contra de limitar la compra de viviendas por extranjeros en Baleares"
+→ classification: "REAL"
+→ confidence: 85
+→ explanation: "Es un hecho comprobable y respaldado por votaciones parlamentarias recientes. Aunque el texto tiene un tono crítico, la información central es verificable."
+→ indicators: ["Presencia de hechos verificables", "Hechos conocidos respaldados por fuentes"]
+
 Texto a analizar:
 """${texto}"""
-`;
+    `;
 
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
@@ -63,7 +69,7 @@ Texto a analizar:
       }
     );
 
-    const content = response.data.choices[0].message.content.trim();
+    const content = response.data.choices[0].message.content;
     let resultado;
 
     try {
