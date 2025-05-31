@@ -1,5 +1,3 @@
-// utils/openai.js
-
 const { openai } = require('./openaiConfig');
 
 async function analizarTexto(texto) {
