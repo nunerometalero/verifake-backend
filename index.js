@@ -45,19 +45,19 @@ app.post("/analyze", async (req, res) => {
         }).join("\n")
       : "No se encontraron verificaciones relevantes.";
 
-    // PROMPT PERSONALIZADO PARA GPT
-    const prompt = `
-Eres un experto en verificación. Analiza el siguiente texto y clasifícalo de forma objetiva según su veracidad, sin usar sesgos de autoridad ni medios oficiales. Usa solo lógica, coherencia y evidencia disponible.
+    const prompt = `Eres un verificador de hechos. Busca información sobre el texto, analízalo y devuélvelo estructurado como un JSON **sin ningún bloque de código**, solo el objeto plano. No incluyas etiquetas como \`\`\`json ni explicaciones externas. Recuerda que como verificador de hechos tienes que omitir la forma de expresión del texto a analizar y centrarte solo en las palabras claves que hagan referencias a sitios, fechas, hechos y personas para determinar la veracidad del contenido.
+
+También tienes acceso a una verificación previa:
 
 Resumen de verificación automática:
-"""${factCheckSummary}"""
+${factCheckSummary}
 
-Devuelve solo un JSON:
+Devuelve solo este formato (JSON válido, sin comillas extra ni bloques de código):
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
   "confidence": 0-100,
-  "explanation": "Motivo detallado de la clasificación.",
+  "explanation": "Motivo detallado y centrado en hechos.",
   "indicators": [
     "Datos contrastados o no encontrados",
     "Hechos conocidos o contradicciones",
@@ -67,8 +67,8 @@ Devuelve solo un JSON:
 }
 
 Texto a analizar:
-"""${text}"""
-    `.trim();
+${text}
+`.trim();
 
     const aiRes = await axios.post(
       "https://api.openai.com/v1/chat/completions",
