@@ -23,7 +23,6 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    // CONSULTA FACT CHECK DE GOOGLE
     const factCheckRes = await axios.get(
       "https://factchecktools.googleapis.com/v1alpha1/claims:search",
       {
@@ -45,19 +44,16 @@ app.post("/analyze", async (req, res) => {
         }).join("\n")
       : "No se encontraron verificaciones relevantes.";
 
-    const prompt = `Eres un verificador de hechos. Busca información sobre el texto, analízalo y devuélvelo estructurado como un JSON **sin ningún bloque de código**, solo el objeto plano. No incluyas etiquetas como \`\`\`json ni explicaciones externas. Recuerda que como verificador de hechos tienes que omitir la forma de expresión del texto a analizar y centrarte solo en las palabras claves que hagan referencias a sitios, fechas, hechos y personas para determinar la veracidad del contenido.
+    const prompt = `Eres un verificador profesional. Tu trabajo es analizar objetivamente un texto y determinar su veracidad.
 
-También tienes acceso a una verificación previa:
+Ya se ha hecho una búsqueda en fuentes externas (Google Fact Check API) y se te proporciona un resumen con los resultados encontrados. Basándote en ese resumen y en el contenido del texto, determina si el texto es real, falso, sátira, opinión o no verificable. No inventes fuentes. No te desvíes.
 
-Resumen de verificación automática:
-${factCheckSummary}
-
-Devuelve solo este formato (JSON válido, sin comillas extra ni bloques de código):
+Devuelve ÚNICAMENTE un JSON limpio y válido, sin comentarios, sin bloques de código, sin adornos.
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
-  "confidence": 0-100,
-  "explanation": "Motivo detallado y centrado en hechos.",
+  "confidence": número entre 0 y 100,
+  "explanation": "Explicación clara, objetiva y centrada en hechos verificables.",
   "indicators": [
     "Datos contrastados o no encontrados",
     "Hechos conocidos o contradicciones",
@@ -66,8 +62,12 @@ Devuelve solo este formato (JSON válido, sin comillas extra ni bloques de códi
   ]
 }
 
+Resumen externo:
+${factCheckSummary}
+
 Texto a analizar:
 ${text}
+
 `.trim();
 
     const aiRes = await axios.post(
