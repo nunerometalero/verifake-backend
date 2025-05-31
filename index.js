@@ -28,7 +28,7 @@ Eres un verificador de hechos. Tu tarea es analizar un texto como si fuera una p
 - Evalúa si las afirmaciones son comprobables y dales una clasificación objetiva.
 - Si hay hechos verdaderos entremezclados con opiniones, clasifica como "REAL" y explícalo.
 
-Responde solo con un JSON con esta estructura:
+Responde únicamente con un JSON válido, sin envolverlo en bloques de código, sin explicaciones, sin comentarios. Solo el JSON plano.
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | OPINIÓN | SATIRA]",
