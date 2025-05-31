@@ -11,16 +11,16 @@ const NEWSAPI_KEY = process.env.NEWSAPI_KEY;
 
 async function analizarTexto(texto) {
   const prompt = `
-  Actúa como un verificador de hechos. Dado el siguiente texto, identifica las afirmaciones principales que puedan ser comprobadas con hechos. Para cada afirmación, responde en el siguiente formato:
+Actúa como un verificador de hechos. Dado el siguiente texto, identifica las afirmaciones principales que puedan ser comprobadas con hechos. Para cada afirmación, responde en el siguiente formato:
 
-  - Afirmación: "<afirmación extraída>"
-  - Verificable: Sí/No
-  - Hechos encontrados: "<resumen de hechos si se encuentran>"
-  - Fiabilidad (0-100): <número>
-  - Fuente (si se puede): <URL o "No encontrada">
+- Afirmación: "<afirmación extraída>"
+- Verificable: Sí/No
+- Hechos encontrados: "<resumen de hechos si se encuentran>"
+- Fiabilidad (0-100): <número>
+- Fuente (si se puede): <URL o "No encontrada">
 
-  Texto:
-  "${texto}"
+Texto:
+"${texto}"
   `;
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -66,16 +66,18 @@ async function verificarConNewsAPI(afirmacion) {
     : 'No se encontró en noticias.';
 }
 
-export async function verificarTexto(texto) {
+async function verificarTexto(texto) {
   console.log('[✔] Analizando texto con OpenAI...');
   const analisis = await analizarTexto(texto);
 
-  const afirmaciones = analisis.match(/- Afirmación: "(.*?)"/g)?.map(x => x.replace('- Afirmación: "', '').replace('"', '')) || [];
+  const afirmaciones = analisis.match(/- Afirmación: "(.*?)"/g)?.map(x =>
+    x.replace('- Afirmación: "', '').replace('"', '')
+  ) || [];
 
   const resultados = [];
+
   for (const afirmacion of afirmaciones) {
     console.log(`[🧠] Verificando: ${afirmacion}`);
-
     const google = await verificarConGoogleFactCheck(afirmacion);
     const serp = await verificarConSerpAPI(afirmacion);
     const news = await verificarConNewsAPI(afirmacion);
@@ -93,3 +95,5 @@ export async function verificarTexto(texto) {
     resultados,
   };
 }
+
+module.exports = { verificarTexto };
