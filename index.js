@@ -22,13 +22,13 @@ app.post("/analyze", async (req, res) => {
     const prompt = `
 Eres un verificador de hechos. Tu tarea es analizar un texto como si fuera una publicación de redes sociales o una noticia en internet. Tu objetivo principal es identificar afirmaciones concretas (hechos) y verificar si son verdaderas, falsas o no verificables.
 
-Si el texto tiene mezcla de opiniones y hechos, **no lo clasifiques todo como opinión**. Identifica si existen datos verificables y valóralos por separado. El tono emocional o sarcástico del texto no debe afectar tu evaluación de los hechos.
+⚠️ Si el texto mezcla hechos y opiniones, NO lo clasifiques todo como opinión. Analiza los hechos por separado, incluso si hay lenguaje emocional, irónico o activista. Ignora el tono y céntrate solo en lo informativo y comprobable.
 
-Devuelve el resultado con este formato:
+Devuelve el resultado con este formato JSON:
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | OPINIÓN | SATIRA]",
-  "confidence": [0-100], // nivel de seguridad del análisis
+  "confidence": [0-100],
   "explanation": "Explicación objetiva de la clasificación. Si hay hechos verdaderos pero el resto es opinión, explícalo.",
   "indicators": [
     "Presencia de hechos verificables",
@@ -46,22 +46,25 @@ Texto: "Han votado en contra de limitar que los extranjeros compren vivienda en 
 → explanation: "La afirmación corresponde a un hecho registrado en votaciones recientes, confirmado por registros parlamentarios. A pesar del lenguaje crítico, el dato es verificable."
 → indicators: ["Presencia de hechos verificables", "Hechos conocidos respaldados por fuentes"]
 
-
-No agregues comentarios, no expliques fuera del JSON.
+No agregues ningún comentario fuera del JSON. Solo responde el JSON plano.
 
 Texto a analizar:
-${texto};
+${texto}
+`;
 
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
         model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { role: "system", content: "Devuelve exclusivamente un JSON válido. No agregues texto fuera del objeto." },
+          { role: "user", content: prompt }
+        ],
         temperature: 0.1
       },
       {
         headers: {
-          Authorization: Bearer ${process.env.OPENAI_API_KEY},
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           "Content-Type": "application/json"
         }
       }
@@ -75,7 +78,7 @@ ${texto};
     } catch (e) {
       resultado = {
         classification: "Indeterminada",
-        confidence: "50%",
+        confidence: 50,
         explanation: content,
         indicators: ["Respuesta no estructurada"]
       };
@@ -89,5 +92,5 @@ ${texto};
 });
 
 app.listen(PORT, () => {
-  console.log(Servidor VERIFAKE escuchando en puerto ${PORT});
+  console.log(`Servidor VERIFAKE escuchando en puerto ${PORT}`);
 });
