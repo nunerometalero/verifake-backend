@@ -20,31 +20,32 @@ app.post("/analyze", async (req, res) => {
 
   try {
     const prompt = `
-Eres un analista experto en verificación de hechos. Tu tarea es analizar el siguiente texto como si fuera una publicación en redes sociales, una noticia online o una cadena viral. 
+Eres un verificador de hechos. Tu tarea es analizar un texto como si fuera una publicación de redes sociales o una noticia en internet. Tu objetivo principal es identificar afirmaciones concretas (hechos) y verificar si son verdaderas, falsas o no verificables.
 
-Debes determinar su veracidad basándote únicamente en el contenido del texto y su coherencia factual, sin considerar la reputación de la fuente. No uses listas blancas o negras de medios. No presupongas credibilidad por el origen.
+Si el texto tiene mezcla de opiniones y hechos, **no lo clasifiques todo como opinión**. Identifica si existen datos verificables y valóralos por separado. El tono emocional o sarcástico del texto no debe afectar tu evaluación de los hechos.
 
-Evalúa si el texto:
-- Es verificable de forma objetiva
-- Manipula información real
-- Es una sátira, una opinión, o simplemente no verificable
-- Contiene elementos claramente falsos o engañosos
-
-Devuelve el resultado en **formato JSON exacto** con esta estructura:
+Devuelve el resultado con este formato:
 
 {
-  "classification": "Real" | "Falsa" | "Sátira" | "Opinión" | "Indeterminada",
-  "confidence": número entre 0 y 100,  // Porcentaje estimado de certeza
-  "explanation": "Explicación clara y objetiva sobre por qué el texto ha recibido esa clasificación.",
+  "classification": "[REAL | FALSO | NO VERIFICABLE | OPINIÓN | SATIRA]",
+  "confidence": [0-100], // nivel de seguridad del análisis
+  "explanation": "Explicación objetiva de la clasificación. Si hay hechos verdaderos pero el resto es opinión, explícalo.",
   "indicators": [
-    "Datos verificados o no encontrados",
-    "Distorsión de hechos reales",
-    "Lenguaje emocional o sensacionalista",
-    "Ausencia de pruebas",
-    "Elementos subjetivos o de sátira",
-    "Fuentes cruzadas (sin asumir fiabilidad por el medio)"
+    "Presencia de hechos verificables",
+    "Falta de pruebas o fuentes explícitas",
+    "Lenguaje emocional o subjetivo",
+    "Hechos conocidos respaldados por fuentes",
+    "Afirma hechos reales pero mezclados con opinión"
   ]
 }
+
+Ejemplo:
+Texto: "Han votado en contra de limitar que los extranjeros compren vivienda en Baleares"
+→ classification: "REAL"
+→ confidence: 85
+→ explanation: "La afirmación corresponde a un hecho registrado en votaciones recientes, confirmado por registros parlamentarios. A pesar del lenguaje crítico, el dato es verificable."
+→ indicators: ["Presencia de hechos verificables", "Hechos conocidos respaldados por fuentes"]
+
 
 No agregues comentarios, no expliques fuera del JSON.
 
