@@ -2,7 +2,7 @@
   "name": "verifake-backend",
   "version": "1.0.0",
   "description": "Backend para analizar noticias con IA",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
   "start": "node server.js"
 },
