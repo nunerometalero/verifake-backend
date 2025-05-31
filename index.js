@@ -1,7 +1,7 @@
-const { analizarTexto } = require('./openai');
-const { verificarConGoogleFactCheck } = require('./googleFactCheck');
-const { buscarEnSerpAPI } = require('./serpapi');
-const { buscarEnNewsAPI } = require('./newsapi');
+const { analizarTexto } = require('./utils/openai');
+const { verificarConGoogleFactCheck } = require('./utils//googleFactCheck');
+const { buscarEnSerpAPI } = require('./utils//serpapi');
+const { buscarEnNewsAPI } = require('./utils//newsapi');
 
 async function verificarTexto(texto) {
   console.log('[✔] Analizando texto con OpenAI...');
