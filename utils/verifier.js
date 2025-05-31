@@ -1,8 +1,8 @@
 const dotenv = require('dotenv');
+dotenv.config();
+
 const fetch = require('node-fetch');
 const axios = require('axios');
-
-dotenv.config();
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GOOGLE_FACTCHECK_API_KEY = process.env.GOOGLE_FACT_CHECK_API_KEY;
