@@ -1,8 +1,8 @@
 const axios = require('axios');
 
-async function verificarConGoogleFactCheck(text) {
+async function verificarConGoogleFactCheck(afirmacion) {
   const apiKey = process.env.GOOGLE_FACT_CHECK_API_KEY;
-  const url = `https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(text)}&key=${apiKey}&languageCode=es`;
+  const url = `https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(afirmacion)}&key=${apiKey}&languageCode=es`;
 
   try {
     const response = await axios.get(url);
