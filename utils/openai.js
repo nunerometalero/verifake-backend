@@ -2,8 +2,9 @@ const { openai } = require('./openaiConfig');
 
 async function analizarTexto(texto) {
   const prompt = `
-Actúa como un verificador de información. Lee el siguiente texto y extrae afirmaciones relevantes que se puedan contrastar. Devuélvelas con el siguiente formato:
+Actúa como un extractor de hechos clave verificables. Se te proporciona un texto que puede contener opiniones, ironías o sesgos. Ignora el tono o lenguaje subjetivo y enfócate solo en identificar hechos clave objetivos que se puedan verificar, como nombres de países, líderes, acusaciones, eventos, lugares, fechas, etc.
 
+Devuelve las afirmaciones en este formato exacto:
 - Afirmación: "..."
 
 Texto a analizar:
