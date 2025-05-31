@@ -23,6 +23,7 @@ app.post('/analyze', async (req, res) => {
   }
 });
 
+// ✅ SOLO UNA VEZ
 app.listen(PORT, () => {
   console.log(`[VERIFAKE] Servidor escuchando en el puerto ${PORT}`);
 });
