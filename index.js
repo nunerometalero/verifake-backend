@@ -83,28 +83,27 @@ Devuelve un JSON con:
   // Validación segura del JSON
   let parsed;
   try {
-    parsed = JSON.parse(clean);
-  } catch (jsonErr) {
-    console.warn('[⚠️] Error al parsear JSON:', jsonErr.message);
+      parsed = JSON.parse(clean);
+    } catch (jsonErr) {
+      console.warn('[⚠️] Error al parsear JSON:', jsonErr.message);
+      return {
+        classification: 'Desconocido',
+        confidence: null,
+        explanation: 'OpenAI devolvió un formato inesperado.',
+        indicators: []
+      };
+    }
+
+    return parsed;
+  } catch (err) {
+    console.error('[VERIFAKE] Error generando resumen final:', err.message);
     return {
       classification: 'Desconocido',
       confidence: null,
-      explanation: 'OpenAI devolvió un formato inesperado.',
+      explanation: 'Error al generar el resumen final.',
       indicators: []
     };
   }
-
-  return parsed;
-
-} catch (err) {
-  console.error('[VERIFAKE] Error generando resumen final:', err.message);
-  return {
-    classification: 'Desconocido',
-    confidence: null,
-    explanation: 'Error al generar el resumen final.',
-    indicators: []
-  };
-}
 }
 
 module.exports = { verificarTexto };
