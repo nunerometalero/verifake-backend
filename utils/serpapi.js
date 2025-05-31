@@ -1,6 +1,6 @@
-import axios from 'axios';
+const axios = require('axios');
 
-export async function buscarEnSerpAPI(query) {
+async function buscarEnSerpAPI(query) {
   const SERPAPI_KEY = process.env.SERPAPI_KEY;
   if (!SERPAPI_KEY) return [];
 
@@ -19,3 +19,5 @@ export async function buscarEnSerpAPI(query) {
     return [];
   }
 }
+
+module.exports = { buscarEnSerpAPI };
