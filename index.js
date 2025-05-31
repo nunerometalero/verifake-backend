@@ -75,7 +75,11 @@ Texto a analizar:
       }
     );
 
-    const content = response.data.choices[0].message.content;
+    const content = response.data.choices[0]?.message?.content;
+    if (!content) {
+      return res.status(500).json({ error: "La respuesta de OpenAI está vacía." });
+    }
+
     let resultado;
 
     try {
@@ -84,9 +88,15 @@ Texto a analizar:
       resultado = {
         classification: "NO VERIFICABLE",
         confidence: 50,
-        explanation: content || "Sin explicación",
+        explanation: content,
         indicators: ["Formato de respuesta inesperado"]
       };
+    }
+
+    // Validar campos esperados
+    const { classification, confidence, explanation, indicators } = resultado;
+    if (!classification || confidence === undefined || !explanation || !indicators) {
+      return res.status(500).json({ error: "La respuesta de OpenAI no contiene todos los campos esperados." });
     }
 
     res.json(resultado);
