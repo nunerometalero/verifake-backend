@@ -99,4 +99,32 @@ Devuelve un JSON con:
       temperature: 0.2
     });
 
-    const raw = response.choices
+    const raw = response.choices[0].message.content;
+    console.log("[DEBUG] Respuesta RAW de OpenAI:", raw);
+
+    const clean = raw.replace(/```json|```/g, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch (jsonErr) {
+      console.warn('[⚠️] Error al parsear JSON:', jsonErr.message);
+      return {
+        classification: 'Desconocido',
+        confidence: null,
+        explanation: 'OpenAI devolvió un formato inesperado.',
+        indicators: []
+      };
+    }
+
+    return parsed;
+  } catch (err) {
+    console.error('[VERIFAKE] Error generando resumen final:', err.message);
+    return {
+      classification: 'Desconocido',
+      confidence: null,
+      explanation: 'Error al generar el resumen final.',
+      indicators: []
+    };
+  }
+}
