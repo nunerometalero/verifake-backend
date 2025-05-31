@@ -19,14 +19,20 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const prompt = `
-Eres un verificador de hechos. Tu tarea es analizar un texto como si fuera una publicación de redes sociales o una noticia online.
+    const prompt = `Analiza el siguiente texto e identifica si contiene hechos verificables, independientemente del tono, lenguaje emocional o estilo del autor.
 
-📌 Importante:
-- No clasifiques todo como "Opinión" solo por el tono emocional.
-- Tu objetivo es detectar hechos **concretos** dentro del texto, incluso si están escritos con lenguaje subjetivo o sarcástico.
-- Evalúa si las afirmaciones son comprobables y dales una clasificación objetiva.
-- Si hay hechos verdaderos entremezclados con opiniones, clasifica como "REAL" y explícalo.
+Ignora opiniones o juicios subjetivos y céntrate solo en hechos contrastables: fechas, cifras, eventos, lugares, personas o declaraciones concretas.
+
+Clasifica como:
+
+- REAL: si los hechos pueden verificarse en medios fiables o fuentes oficiales.
+- FALSO: si contiene hechos que contradicen la evidencia o fuentes oficiales.
+- PARCIAL: si mezcla hechos ciertos con afirmaciones dudosas o no verificadas.
+- NO VERIFICABLE: si no hay información concreta o contrastable.
+- SÁTIRA: si es claramente un texto humorístico o irónico.
+- OPINIÓN: solo si no contiene ningún hecho verificable.
+
+Explica tu clasificación y menciona qué elementos se consideran hechos verificables.
 
 Responde únicamente con un JSON válido, sin envolverlo en bloques de código, sin explicaciones, sin comentarios. Solo el JSON plano.
 
