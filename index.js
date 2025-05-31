@@ -13,13 +13,19 @@ app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
   const { text, url } = req.body;
+
   if (!text || text.trim().length === 0) {
     return res.status(400).json({ error: "Texto no proporcionado" });
   }
 
+  if (!process.env.GOOGLE_FACT_CHECK_API_KEY || !process.env.OPENAI_API_KEY) {
+    return res.status(500).json({ error: "Faltan claves de API en .env" });
+  }
+
   try {
+    // CONSULTA FACT CHECK DE GOOGLE
     const factCheckRes = await axios.get(
-      `https://factchecktools.googleapis.com/v1alpha1/claims:search`,
+      "https://factchecktools.googleapis.com/v1alpha1/claims:search",
       {
         params: {
           query: text,
@@ -29,25 +35,29 @@ app.post("/analyze", async (req, res) => {
       }
     );
 
-    let claims = factCheckRes.data.claims || [];
-    let factCheckSummary = claims.length > 0
-      ? claims.map((c) => `${c.text} (${c.claimReview?.[0]?.textualRating || "Sin calificar"})`).join("\n")
-      : "No se encontraron resultados relevantes en bases de datos de verificación.";
+    const claims = factCheckRes.data.claims || [];
+    const factCheckSummary = claims.length > 0
+      ? claims.map(claim => {
+          const review = claim.claimReview?.[0];
+          return review
+            ? `${claim.text} → ${review.textualRating} por ${review.publisher?.name || "desconocido"}`
+            : `${claim.text} → Sin calificación`;
+        }).join("\n")
+      : "No se encontraron verificaciones relevantes.";
 
+    // PROMPT PERSONALIZADO PARA GPT
     const prompt = `
-Eres un analista experto en verificación de información. Tu tarea es analizar un texto (como si fuera un post en redes sociales o una noticia online) y determinar su veracidad basándote exclusivamente en el contenido y su coherencia factual.
+Eres un experto en verificación. Analiza el siguiente texto y clasifícalo de forma objetiva según su veracidad, sin usar sesgos de autoridad ni medios oficiales. Usa solo lógica, coherencia y evidencia disponible.
 
-No debes usar listas blancas ni confiar en medios oficiales, solo análisis objetivo y semántico. Si no se puede verificar, indícalo claramente. Si detectas sátira u opinión, también.
-
-Información adicional obtenida automáticamente de bases de datos de verificación de hechos:
+Resumen de verificación automática:
 """${factCheckSummary}"""
 
-Devuelve el resultado como JSON:
+Devuelve solo un JSON:
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
   "confidence": 0-100,
-  "explanation": "Explicación objetiva de la clasificación.",
+  "explanation": "Motivo detallado de la clasificación.",
   "indicators": [
     "Datos contrastados o no encontrados",
     "Hechos conocidos o contradicciones",
@@ -58,14 +68,14 @@ Devuelve el resultado como JSON:
 
 Texto a analizar:
 """${text}"""
-    `;
+    `.trim();
 
-    const response = await axios.post(
+    const aiRes = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
         model: "gpt-4o",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.1
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1
       },
       {
         headers: {
@@ -75,37 +85,35 @@ Texto a analizar:
       }
     );
 
-    const content = response.data.choices[0]?.message?.content;
-    if (!content) {
-      return res.status(500).json({ error: "La respuesta de OpenAI está vacía." });
+    const rawOutput = aiRes.data.choices?.[0]?.message?.content;
+    if (!rawOutput) {
+      return res.status(500).json({ error: "Respuesta vacía de OpenAI" });
     }
 
-    let resultado;
-
+    let result;
     try {
-      resultado = JSON.parse(content);
-    } catch (e) {
-      resultado = {
+      result = JSON.parse(rawOutput);
+    } catch (err) {
+      result = {
         classification: "NO VERIFICABLE",
         confidence: 50,
-        explanation: content,
+        explanation: rawOutput,
         indicators: ["Formato de respuesta inesperado"]
       };
     }
 
-    // Validar campos esperados
-    const { classification, confidence, explanation, indicators } = resultado;
+    const { classification, confidence, explanation, indicators } = result;
     if (!classification || confidence === undefined || !explanation || !indicators) {
-      return res.status(500).json({ error: "La respuesta de OpenAI no contiene todos los campos esperados." });
+      return res.status(500).json({ error: "Respuesta incompleta del análisis" });
     }
 
-    res.json(resultado);
+    res.json(result);
   } catch (error) {
     console.error("Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Error al procesar el análisis" });
+    res.status(500).json({ error: "Error en el análisis o en la API externa" });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor VERIFAKE escuchando en puerto ${PORT}`);
+  console.log(`Servidor VERIFAKE activo en puerto ${PORT}`);
 });
