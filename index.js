@@ -13,39 +13,50 @@ app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
   const { texto } = req.body;
-
   if (!texto) {
     return res.status(400).json({ error: "Texto no proporcionado" });
   }
 
   try {
+    const factCheckRes = await axios.get(
+      `https://factchecktools.googleapis.com/v1alpha1/claims:search`,
+      {
+        params: {
+          query: texto,
+          key: process.env.GOOGLE_FACT_CHECK_API_KEY,
+          languageCode: "es"
+        }
+      }
+    );
+
+    let claims = factCheckRes.data.claims || [];
+    let factCheckSummary = claims.length > 0
+      ? claims.map((c) => `${c.text} (${c.claimReview?.[0]?.textualRating || "Sin calificar"})`).join("\n")
+      : "No se encontraron resultados relevantes en bases de datos de verificación.";
+
     const prompt = `
-Eres un analista experto en verificación de información. Tu tarea es analizar un texto (como si fuera un post en redes sociales o una noticia online) y determinar su veracidad basándote exclusivamente en el contenido y su coherencia factual. No debes considerar si proviene de medios "fiables" o no, ni usar listas blancas de fuentes.
+Eres un analista experto en verificación de información. Tu tarea es analizar un texto (como si fuera un post en redes sociales o una noticia online) y determinar su veracidad basándote exclusivamente en el contenido y su coherencia factual.
 
-Realiza una verificación independiente, utilizando conocimiento actualizado y datos objetivos. Si el texto no se puede verificar, indica claramente que no es verificable. Si detectas que el texto es sátira o una opinión, indícalo también.
+No debes usar listas blancas ni confiar en medios oficiales, solo análisis objetivo y semántico. Si no se puede verificar, indícalo claramente. Si detectas sátira u opinión, también.
 
-Devuelve el resultado con la siguiente estructura:
+Información adicional obtenida automáticamente de bases de datos de verificación de hechos:
+"""${factCheckSummary}"""
+
+Devuelve el resultado como JSON:
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
-  "confidence": [0-100], // Porcentaje estimado de fiabilidad del análisis
-  "explanation": "Explicación objetiva de por qué el texto ha recibido esa clasificación.",
+  "confidence": 0-100,
+  "explanation": "Explicación objetiva de la clasificación.",
   "indicators": [
     "Datos contrastados o no encontrados",
-    "Referencias o hechos conocidos",
-    "Elementos de opinión, sátira o lenguaje emocional",
-    "Fuentes cruzadas, si las hay (sin usar medios oficiales como criterio de fiabilidad)"
+    "Hechos conocidos o contradicciones",
+    "Elementos de opinión o sátira",
+    "Fuentes indirectas o evidencias contextuales"
   ]
 }
 
-Ejemplo:
-Texto: "Un meteorito ha destruido la Torre Eiffel esta mañana."
-→ classification: "FALSO"
-→ confidence: 98
-→ explanation: "No existen reportes verificables ni evidencias de tal evento. La Torre Eiffel sigue en pie según múltiples fuentes cruzadas."
-→ indicators: ["No hay fuentes independientes", "Noticias actuales lo contradicen", "Sería un hecho global ampliamente cubierto"]
-
-Ahora analiza el siguiente texto:
+Texto a analizar:
 """${texto}"""
     `;
 
@@ -54,7 +65,7 @@ Ahora analiza el siguiente texto:
       {
         model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.1
+        temperature: 0.2
       },
       {
         headers: {
@@ -71,17 +82,17 @@ Ahora analiza el siguiente texto:
       resultado = JSON.parse(content);
     } catch (e) {
       resultado = {
-        classification: "Indeterminada",
+        classification: "NO VERIFICABLE",
         confidence: 50,
         explanation: content,
-        indicators: ["Respuesta no estructurada"]
+        indicators: ["Formato de respuesta inesperado"]
       };
     }
 
     res.json(resultado);
   } catch (error) {
-    console.error("Error al consultar OpenAI:", error.response?.data || error.message);
-    res.status(500).json({ error: "Error al analizar el texto" });
+    console.error("Error:", error.response?.data || error.message);
+    res.status(500).json({ error: "Error al procesar el análisis" });
   }
 });
 
