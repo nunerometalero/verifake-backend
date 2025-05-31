@@ -1,7 +1,7 @@
 const axios = require('axios');
 
-async function getFactCheckSummary(text) {
-  const apiKey = process.env.GOOGLE_FACTCHECK_API_KEY;
+async function verificarConGoogleFactCheck(text) {
+  const apiKey = process.env.GOOGLE_FACT_CHECK_API_KEY;
   const url = `https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(text)}&key=${apiKey}`;
 
   try {
@@ -24,4 +24,4 @@ async function getFactCheckSummary(text) {
   }
 }
 
-module.exports = { getFactCheckSummary };
+module.exports = { verificarConGoogleFactCheck };
