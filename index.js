@@ -47,32 +47,39 @@ app.post("/analyze", async (req, res) => {
 
     // Prompt para GPT
     const prompt = `
-Eres un verificador profesional y tu única fuente externa permitida es el siguiente resumen generado desde Google Fact Check API. 
-Tu trabajo es analizar objetivamente el texto a continuación y clasificarlo según su veracidad: 
-REAL, FALSO, SATIRA, OPINIÓN o NO VERIFICABLE.
+Eres un verificador profesional y tu única fuente externa permitida es el siguiente resumen generado desde Google Fact Check API.
 
-No inventes fuentes, no asumas hechos sin respaldo. Basa tu análisis exclusivamente en el contenido del texto y el resumen de verificación proporcionado.
+Tu tarea es analizar SOLO los HECHOS EXPRESADOS EXPLÍCITAMENTE en el texto (sin interpretar intenciones, ironías ni emociones) y clasificarlos según su veracidad. No analices el tono ni los sentimientos del autor.
 
-Devuelve únicamente un JSON válido, sin bloques de código, sin comentarios, sin etiquetas ni formato extra.
+Paso 1. Identifica afirmaciones verificables contenidas en el texto. No incluyas opiniones, sarcasmos ni expresiones emocionales. Solo hechos verificables como:
+- "El CERN ha convertido plomo en oro"
+- "PP y Vox votaron en contra de las ayudas"
+- "300 personas se manifestaron en Moncloa"
+- "La vacuna tiene grafeno"
+
+Paso 2. Verifica cada afirmación usando SOLO el resumen externo proporcionado. Si una afirmación contradice leyes físicas, hechos científicos o datos públicos ampliamente conocidos (como registros parlamentarios), clasifícala como FALSO incluso si la API no da resultado explícito.
+
+Paso 3. Devuelve un JSON en este formato. No inventes información ni expliques más allá de lo pedido.
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
   "confidence": número entre 0 y 100,
-  "explanation": "Explicación clara, objetiva y centrada en hechos verificables.",
+  "explanation": "Explicación clara, objetiva y centrada en hechos verificables del texto.",
   "indicators": [
-    "Datos contrastados o no encontrados",
-    "Hechos conocidos o contradicciones",
-    "Elementos de opinión o sátira",
-    "Fuentes indirectas o evidencias contextuales"
+    "Hechos concretos encontrados o no",
+    "Verificación cruzada con la API o conocimiento común",
+    "Elementos de sátira, ironía o subjetividad detectados",
+    "Contradicciones con evidencia pública, científica o legal"
   ]
 }
 
-Resumen de verificación externa:
+Resumen externo para verificación:
 ${factCheckSummary}
 
 Texto a analizar:
 ${text}
-`.trim();
+`;
+
 
     const aiRes = await axios.post(
       "https://api.openai.com/v1/chat/completions",
