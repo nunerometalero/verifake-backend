@@ -1,54 +1,77 @@
-const express = require('express');
-const router = express.Router();
-const { getFactCheckSummary } = require('../utils/factcheck'); // función que llama a Google Fact Check
-const { openai } = require('../utils/openai'); // setup de la API de OpenAI
+import dotenv from 'dotenv';
+dotenv.config();
 
-router.post('/', async (req, res) => {
-  const { text } = req.body;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GOOGLE_FACTCHECK_API_KEY = process.env.GOOGLE_FACTCHECK_API_KEY;
 
-  try {
-    const factCheckSummary = await getFactCheckSummary(text);
+async function analizarTexto(texto) {
+  const prompt = `
+  Actúa como un verificador de hechos. Dado el siguiente texto, identifica las afirmaciones principales que puedan ser comprobadas con hechos. Para cada afirmación, responde en el siguiente formato:
 
-    const prompt = `
-Eres un verificador profesional y tu única fuente externa permitida es el siguiente resumen generado desde Google Fact Check API. 
-Tu trabajo es analizar objetivamente el texto a continuación y clasificarlo según su veracidad: 
-REAL, FALSO, SATIRA, OPINIÓN o NO VERIFICABLE.
+  - Afirmación: "<afirmación extraída>"
+  - Verificable: Sí/No
+  - Hechos encontrados: "<resumen de hechos si se encuentran>"
+  - Fiabilidad (0-100): <número>
+  - Fuente (si se puede): <URL o "No encontrada">
 
-No inventes fuentes, no asumas hechos sin respaldo. Basa tu análisis exclusivamente en el contenido del texto y el resumen de verificación proporcionado.
+  Texto:
+  "${texto}"
+  `;
 
-Devuelve únicamente un JSON válido, sin bloques de código, sin comentarios, sin etiquetas ni formato extra.
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0,
+    }),
+  });
 
-{
-  "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
-  "confidence": número entre 0 y 100,
-  "explanation": "Explicación clara, objetiva y centrada en hechos verificables.",
-  "indicators": [
-    "Datos contrastados o no encontrados",
-    "Hechos conocidos o contradicciones",
-    "Elementos de opinión o sátira",
-    "Fuentes indirectas o evidencias contextuales"
-  ]
+  const data = await res.json();
+  const respuesta = data.choices?.[0]?.message?.content || 'No se pudo analizar.';
+  return respuesta;
 }
 
-Resumen de verificación externa:
-${factCheckSummary}
+async function verificarConGoogleFactCheck(afirmacion) {
+  const url = `https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(
+    afirmacion
+  )}&key=${GOOGLE_FACTCHECK_API_KEY}`;
 
-Texto a analizar:
-${text}
-    `.trim();
+  const res = await fetch(url);
+  const data = await res.json();
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-    });
+  if (!data.claims || data.claims.length === 0) return 'No se encontraron verificaciones.';
 
-    const json = JSON.parse(completion.choices[0].message.content);
-    res.json(json);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al verificar el texto.' });
+  return data.claims.map((claim) => {
+    return `Fuente: ${claim.claimReview[0].publisher.name} | Veredicto: ${claim.claimReview[0].text}`;
+  });
+}
+
+export async function verificarTexto(texto) {
+  console.log('[✔] Analizando texto con OpenAI...');
+  const analisis = await analizarTexto(texto);
+
+  console.log('[✔] Buscando afirmaciones para verificación...');
+  const afirmaciones = analisis.match(/- Afirmación: "(.*?)"/g)?.map(x => x.replace('- Afirmación: "', '').replace('"', '')) || [];
+
+  const resultados = [];
+  for (const afirmacion of afirmaciones) {
+    console.log(`[🧠] Verificando: ${afirmacion}`);
+    const googleData = await verificarConGoogleFactCheck(afirmacion);
+    resultados.push({ afirmacion, googleData });
   }
-});
 
-module.exports = router;
+  return {
+    analisis,
+    resultados,
+  };
+}
