@@ -1,32 +1,8 @@
-const express = require('express');
-const bodyParser = require('body-parser');
 const { analizarTexto } = require('./utils/openai');
 const { verificarConGoogleFactCheck } = require('./utils/googleFactCheck');
 const { buscarEnSerpAPI } = require('./utils/serpapi');
 const { buscarEnNewsAPI } = require('./utils/newsapi');
-
-const app = express();
-app.use(bodyParser.json());
-
-// Endpoint de verificación
-app.post('/analyze', async (req, res) => {
-  try {
-    const texto = req.body.texto;
-    const resultado = await verificarTexto(texto);
-    res.json(resultado);
-  } catch (err) {
-    console.error('[ERROR] Verificando texto:', err.message);
-    res.status(500).json({ error: 'Error en el análisis.' });
-  }
-});
-
-// Escuchar en el puerto indicado por Render (o 3000 localmente)
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`[✅] Servidor VERIFAKE iniciado en el puerto ${PORT}`);
-});
-
-// --------- Lógica existente (no modificada) ---------
+const { openai } = require('./utils/openaiConfig');
 
 async function verificarTexto(texto) {
   console.log('[✔] Analizando texto con OpenAI...');
@@ -67,8 +43,6 @@ async function verificarTexto(texto) {
 }
 
 async function generarResumenFinal(texto, resultados) {
-  const { openai } = require('./openaiConfig');
-
   const prompt = `
 Ignora opiniones, tonos emocionales, sesgos o expresiones subjetivas. Extrae solo afirmaciones objetivas y comprobables, como:
 - “Pedro Sánchez ha sido destituido.”
@@ -94,7 +68,7 @@ Devuelve un JSON con:
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2
     });
