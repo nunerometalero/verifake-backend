@@ -9,7 +9,7 @@ const app = express();
 app.use(bodyParser.json());
 
 // Endpoint de verificación
-app.post('/verificar', async (req, res) => {
+app.post('/analyze', async (req, res) => {
   try {
     const texto = req.body.texto;
     const resultado = await verificarTexto(texto);
