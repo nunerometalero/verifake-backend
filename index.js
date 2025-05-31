@@ -105,5 +105,6 @@ Devuelve un JSON con:
     indicators: []
   };
 }
+}
 
 module.exports = { verificarTexto };
