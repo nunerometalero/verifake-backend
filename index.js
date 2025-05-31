@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
-  const { text, url } = req.body;
+  const { text } = req.body;
 
   if (!text || text.trim().length === 0) {
     return res.status(400).json({ error: "Texto no proporcionado" });
@@ -23,6 +23,7 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
+    // Búsqueda en Google Fact Check
     const factCheckRes = await axios.get(
       "https://factchecktools.googleapis.com/v1alpha1/claims:search",
       {
@@ -44,11 +45,15 @@ app.post("/analyze", async (req, res) => {
         }).join("\n")
       : "No se encontraron verificaciones relevantes.";
 
-    const prompt = `Eres un verificador profesional. Tu trabajo es analizar objetivamente un texto y determinar su veracidad.
+    // Prompt para GPT
+    const prompt = `
+Eres un verificador profesional y tu única fuente externa permitida es el siguiente resumen generado desde Google Fact Check API. 
+Tu trabajo es analizar objetivamente el texto a continuación y clasificarlo según su veracidad: 
+REAL, FALSO, SATIRA, OPINIÓN o NO VERIFICABLE.
 
-Ya se ha hecho una búsqueda en fuentes externas (Google Fact Check API) y se te proporciona un resumen con los resultados encontrados. Basándote en ese resumen y en el contenido del texto, determina si el texto es real, falso, sátira, opinión o no verificable. No inventes fuentes. No te desvíes.
+No inventes fuentes, no asumas hechos sin respaldo. Basa tu análisis exclusivamente en el contenido del texto y el resumen de verificación proporcionado.
 
-Devuelve ÚNICAMENTE un JSON limpio y válido, sin comentarios, sin bloques de código, sin adornos.
+Devuelve únicamente un JSON válido, sin bloques de código, sin comentarios, sin etiquetas ni formato extra.
 
 {
   "classification": "[REAL | FALSO | NO VERIFICABLE | SATIRA | OPINIÓN]",
@@ -62,12 +67,11 @@ Devuelve ÚNICAMENTE un JSON limpio y válido, sin comentarios, sin bloques de c
   ]
 }
 
-Resumen externo:
+Resumen de verificación externa:
 ${factCheckSummary}
 
 Texto a analizar:
 ${text}
-
 `.trim();
 
     const aiRes = await axios.post(
@@ -86,24 +90,37 @@ ${text}
     );
 
     const rawOutput = aiRes.data.choices?.[0]?.message?.content;
+
     if (!rawOutput) {
       return res.status(500).json({ error: "Respuesta vacía de OpenAI" });
     }
 
+    // Limpieza de respuesta si viniera entre bloques o con caracteres extraños
+    const cleanOutput = rawOutput
+      .replace(/```(json)?/gi, "")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "") // caracteres invisibles
+      .trim();
+
     let result;
     try {
-      result = JSON.parse(rawOutput);
+      result = JSON.parse(cleanOutput);
     } catch (err) {
-      result = {
+      console.error("Error al parsear JSON:", err.message);
+      return res.status(500).json({
         classification: "NO VERIFICABLE",
         confidence: 50,
-        explanation: rawOutput,
+        explanation: "La respuesta de la IA no tenía un formato JSON válido.",
         indicators: ["Formato de respuesta inesperado"]
-      };
+      });
     }
 
     const { classification, confidence, explanation, indicators } = result;
-    if (!classification || confidence === undefined || !explanation || !indicators) {
+    if (
+      !classification ||
+      confidence === undefined ||
+      !explanation ||
+      !Array.isArray(indicators)
+    ) {
       return res.status(500).json({ error: "Respuesta incompleta del análisis" });
     }
 
@@ -115,5 +132,5 @@ ${text}
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor VERIFAKE activo en puerto ${PORT}`);
+  console.log(`✅ Servidor VERIFAKE activo en puerto ${PORT}`);
 });
