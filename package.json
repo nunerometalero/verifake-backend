@@ -1,7 +1,7 @@
 {
   "name": "verifake-backend",
   "version": "1.0.0",
-  "description": "Backend para analizar noticias con OpenAI",
+  "description": "Backend para analizar noticias con IA",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
