@@ -1,7 +1,32 @@
+const express = require('express');
+const bodyParser = require('body-parser');
 const { analizarTexto } = require('./utils/openai');
-const { verificarConGoogleFactCheck } = require('./utils//googleFactCheck');
-const { buscarEnSerpAPI } = require('./utils//serpapi');
-const { buscarEnNewsAPI } = require('./utils//newsapi');
+const { verificarConGoogleFactCheck } = require('./utils/googleFactCheck');
+const { buscarEnSerpAPI } = require('./utils/serpapi');
+const { buscarEnNewsAPI } = require('./utils/newsapi');
+
+const app = express();
+app.use(bodyParser.json());
+
+// Endpoint de verificación
+app.post('/verificar', async (req, res) => {
+  try {
+    const texto = req.body.texto;
+    const resultado = await verificarTexto(texto);
+    res.json(resultado);
+  } catch (err) {
+    console.error('[ERROR] Verificando texto:', err.message);
+    res.status(500).json({ error: 'Error en el análisis.' });
+  }
+});
+
+// Escuchar en el puerto indicado por Render (o 3000 localmente)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`[✅] Servidor VERIFAKE iniciado en el puerto ${PORT}`);
+});
+
+// --------- Lógica existente (no modificada) ---------
 
 async function verificarTexto(texto) {
   console.log('[✔] Analizando texto con OpenAI...');
@@ -68,42 +93,10 @@ Devuelve un JSON con:
 `;
 
   try {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.2
-  });
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2
+    });
 
-  const raw = response.choices[0].message.content;
-  console.log("[DEBUG] Respuesta RAW de OpenAI:", raw);
-
-  // Intenta limpiar bloques de código (markdown)
-  const clean = raw.replace(/```json|```/g, '').trim();
-
-  // Validación segura del JSON
-  let parsed;
-  try {
-      parsed = JSON.parse(clean);
-    } catch (jsonErr) {
-      console.warn('[⚠️] Error al parsear JSON:', jsonErr.message);
-      return {
-        classification: 'Desconocido',
-        confidence: null,
-        explanation: 'OpenAI devolvió un formato inesperado.',
-        indicators: []
-      };
-    }
-
-    return parsed;
-  } catch (err) {
-    console.error('[VERIFAKE] Error generando resumen final:', err.message);
-    return {
-      classification: 'Desconocido',
-      confidence: null,
-      explanation: 'Error al generar el resumen final.',
-      indicators: []
-    };
-  }
-}
-
-module.exports = { verificarTexto };
+    const raw = response.choices
