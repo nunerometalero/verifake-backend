@@ -68,26 +68,42 @@ Devuelve un JSON con:
 `;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2
-    });
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.2
+  });
 
-    const raw = response.choices[0].message.content;
-    console.log("[DEBUG] Respuesta RAW de OpenAI:", raw);
+  const raw = response.choices[0].message.content;
+  console.log("[DEBUG] Respuesta RAW de OpenAI:", raw);
 
-    const clean = raw.replace(/```json|```/g, '').trim();
-    return JSON.parse(clean);
-  } catch (err) {
-    console.error('[VERIFAKE] Error generando resumen final:', err.message);
+  // Intenta limpiar bloques de código (markdown)
+  const clean = raw.replace(/```json|```/g, '').trim();
+
+  // Validación segura del JSON
+  let parsed;
+  try {
+    parsed = JSON.parse(clean);
+  } catch (jsonErr) {
+    console.warn('[⚠️] Error al parsear JSON:', jsonErr.message);
     return {
       classification: 'Desconocido',
       confidence: null,
-      explanation: 'Error al generar el resumen final.',
+      explanation: 'OpenAI devolvió un formato inesperado.',
       indicators: []
     };
   }
+
+  return parsed;
+
+} catch (err) {
+  console.error('[VERIFAKE] Error generando resumen final:', err.message);
+  return {
+    classification: 'Desconocido',
+    confidence: null,
+    explanation: 'Error al generar el resumen final.',
+    indicators: []
+  };
 }
 
 module.exports = { verificarTexto };
