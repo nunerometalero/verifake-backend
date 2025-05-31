@@ -1,45 +1,93 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const axios = require("axios");
-const { verificarTexto } = require("./utils/verifier.js"); // ✅ Importa el verificador completo
+const { analizarTexto } = require('./openai');
+const { verificarConGoogleFactCheck } = require('./googleFactCheck');
+const { buscarEnSerpAPI } = require('./serpapi');
+const { buscarEnNewsAPI } = require('./newsapi');
 
-dotenv.config();
+async function verificarTexto(texto) {
+  console.log('[✔] Analizando texto con OpenAI...');
+  const analisis = await analizarTexto(texto);
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+  console.log('[✔] Extrayendo afirmaciones...');
+  const afirmaciones = analisis.match(/- Afirmación: "(.*?)"/g)?.map(x =>
+    x.replace('- Afirmación: "', '').replace('"', '')
+  ) || [];
 
-app.use(cors());
-app.use(express.json());
+  const resultados = [];
 
-app.post("/analyze", async (req, res) => {
-  const { text } = req.body;
+  for (const afirmacion of afirmaciones) {
+    console.log(`[🧠] Verificando: ${afirmacion}`);
+    const google = await verificarConGoogleFactCheck(afirmacion);
+    const serp = await buscarEnSerpAPI(afirmacion);
+    const news = await buscarEnNewsAPI(afirmacion);
 
-  if (!text || text.trim().length === 0) {
-    return res.status(400).json({ error: "Texto no proporcionado" });
+    resultados.push({
+      afirmacion,
+      google,
+      serpapi: serp,
+      newsapi: news
+    });
   }
 
-  if (
-    !process.env.GOOGLE_FACT_CHECK_API_KEY ||
-    !process.env.OPENAI_API_KEY ||
-    !process.env.SERPAPI_KEY ||
-    !process.env.NEWSAPI_KEY
-  ) {
-    return res.status(500).json({ error: "Faltan claves de API en .env" });
-  }
+  console.log('[🧠] Generando resumen final...');
+  const resumen = await generarResumenFinal(texto, resultados);
+
+  return {
+    classification: resumen.classification || 'Desconocido',
+    confidence: resumen.confidence || null,
+    explanation: resumen.explanation || 'Sin explicación disponible',
+    indicators: resumen.indicators || [],
+    analisis,
+    resultados
+  };
+}
+
+async function generarResumenFinal(texto, resultados) {
+  const { openai } = require('./openaiConfig');
+
+  const prompt = `
+Ignora opiniones, tonos emocionales, sesgos o expresiones subjetivas. Extrae solo afirmaciones objetivas y comprobables, como:
+- “Pedro Sánchez ha sido destituido.”
+- “España ha roto relaciones con Israel.”
+- “El Reino Unido apoya la expulsión de Israel de Eurovisión.”
+
+A partir del siguiente texto y los resultados de búsqueda, clasifica la veracidad con base en evidencias fiables. Prioriza los datos confirmados por Google Fact Check (mayor peso), seguido de NewsAPI y luego SerpAPI.
+
+Texto original:
+"${texto}"
+
+Resultados de verificación:
+${JSON.stringify(resultados, null, 2)}
+
+Devuelve un JSON con:
+{
+  "classification": "Real" | "Falso" | "Sátira" | "Opinión" | "No verificable",
+  "confidence": número entre 0 y 100 (según fuentes encontradas),
+  "explanation": explicación breve en español,
+  "indicators": lista de señales clave que apoyan la clasificación
+}
+`;
 
   try {
-    // ✅ Llama al verificador centralizado
-    const resultado = await verificarTexto(text);
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2
+    });
 
-    // ✅ Devuelve directamente el resultado enriquecido
-    res.json(resultado);
-  } catch (error) {
-    console.error("Error en /analyze:", error.message || error);
-    res.status(500).json({ error: "Error en el análisis o en la API externa" });
+    const raw = response.choices[0].message.content;
+    console.log("[DEBUG] Respuesta RAW de OpenAI:", raw);
+
+    const clean = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  } catch (err) {
+    console.error('[VERIFAKE] Error generando resumen final:', err.message);
+    return {
+      classification: 'Desconocido',
+      confidence: null,
+      explanation: 'Error al generar el resumen final.',
+      indicators: []
+    };
   }
-});
+}
 
-app.listen(PORT, () => {
-  console.log(`✅ Servidor VERIFAKE activo en puerto ${PORT}`);
-});
+module.exports = { verificarTexto };
