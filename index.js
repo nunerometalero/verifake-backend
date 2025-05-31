@@ -12,8 +12,8 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/analyze", async (req, res) => {
-  const { texto } = req.body;
-  if (!texto) {
+  const { text, url } = req.body;
+  if (!text || text.trim().length === 0) {
     return res.status(400).json({ error: "Texto no proporcionado" });
   }
 
@@ -22,7 +22,7 @@ app.post("/analyze", async (req, res) => {
       `https://factchecktools.googleapis.com/v1alpha1/claims:search`,
       {
         params: {
-          query: texto,
+          query: text,
           key: process.env.GOOGLE_FACT_CHECK_API_KEY,
           languageCode: "es"
         }
@@ -57,7 +57,7 @@ Devuelve el resultado como JSON:
 }
 
 Texto a analizar:
-"""${texto}"""
+"""${text}"""
     `;
 
     const response = await axios.post(
@@ -84,7 +84,7 @@ Texto a analizar:
       resultado = {
         classification: "NO VERIFICABLE",
         confidence: 50,
-        explanation: content,
+        explanation: content || "Sin explicación",
         indicators: ["Formato de respuesta inesperado"]
       };
     }
